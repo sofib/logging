@@ -1,0 +1,46 @@
+version: '3'
+services:
+  syslog:
+    build:
+      context: syslog
+      dockerfile: rsyslog.Dockerfile
+    environment:
+      - TZ=UTC
+    networks:
+      - logger
+  php:
+    #privileged: true
+    build:
+      context: php
+    networks:
+      - logger
+    volumes:
+      - ./php/init.sh:/app/init.sh
+      - ./php/index.php:/app/index.php
+  logstash:
+    build:
+      context: logstash
+    command: ['-f', 'config/logstash.conf']
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/config/logstash.conf
+    networks:
+      - logger
+  elasticsearch:
+    build:
+      context: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms384m -Xmx384m
+      - xpack.security.enabled=false
+    networks:
+      - logger
+  kibana:
+    build:
+      context: kibana
+    ports:
+      - 5601:5601
+    networks:
+      - logger
+  
+networks:
+  logger:
